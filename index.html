@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comebacks You Can Hear: NCAA Women's Basketball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.0/plotly.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --paper: #F6F7F9; --ink: #17202A; --muted: #5B6673; --rule: #D9DEE5;
+    --home: #2B5BA8; --away: #B5561A; --focus: #2B5BA8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font: 17px/1.55 "Source Sans 3", "Segoe UI", system-ui, sans-serif; }
+  header, main, footer { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  header { padding-top: 40px; padding-bottom: 8px; }
+  h1, h2 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 700; line-height: 1.05; margin: 0; }
+  h1 { font-size: clamp(2.6rem, 6vw, 4.2rem); letter-spacing: -0.01em; }
+  .lede { max-width: 62ch; color: var(--muted); margin: 12px 0 0; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  .layout { display: grid; grid-template-columns: 260px 1fr; gap: 32px; padding-top: 28px; padding-bottom: 40px; }
+  nav h2 { font-size: 1.3rem; margin-bottom: 8px; }
+  #list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+  #list button { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--rule);
+                 padding: 10px 10px 10px 12px; font: inherit; color: inherit; cursor: pointer; border-left: 4px solid transparent; }
+  #list button:hover { background: #EDF0F4; }
+  #list button[aria-pressed="true"] { border-left-color: var(--ink); background: #fff; }
+  #list .teams { display: block; font-weight: 600; line-height: 1.25; }
+  #list .why { display: block; font-size: 0.88rem; color: var(--muted); }
+
+  #gtitle { font-size: clamp(1.7rem, 3.4vw, 2.4rem); }
+  #gmeta { color: var(--muted); margin: 4px 0 12px; }
+  #chart { width: 100%; height: 420px; background: #fff; border: 1px solid var(--rule); }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 16px 0 8px; }
+  #play { font: 700 1.25rem "Barlow Condensed", sans-serif; letter-spacing: 0.02em; padding: 10px 28px;
+          background: var(--ink); color: #fff; border: 0; border-radius: 999px; cursor: pointer; min-width: 132px; }
+  #play[aria-pressed="true"] { background: var(--away); }
+  .controls label { color: var(--muted); font-size: 0.95rem; }
+  select { font: inherit; padding: 4px 6px; }
+  #summary { font-size: 1.08rem; max-width: 65ch; }
+  .key { font-size: 0.92rem; color: var(--muted); max-width: 65ch; }
+  .swatch { display: inline-block; width: 0.8em; height: 0.8em; vertical-align: -0.05em; margin-right: 4px; }
+
+  details { margin-top: 16px; }
+  summary { cursor: pointer; color: var(--muted); }
+  table { border-collapse: collapse; font-size: 0.92rem; margin-top: 8px; }
+  th, td { padding: 3px 14px 3px 0; text-align: right; border-bottom: 1px solid var(--rule); }
+  .tablewrap { max-height: 280px; overflow: auto; }
+
+  footer { color: var(--muted); font-size: 0.88rem; padding-bottom: 48px; border-top: 1px solid var(--rule); padding-top: 16px; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+    #chart { height: 340px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Comebacks you can hear</h1>
+  <p class="lede">How do the biggest comebacks in NCAA women's basketball actually unfold: one late surge, or a slow grind?
+    Pick a game to see the home team's lead minute by minute, then press <b>Listen</b>.
+    Higher notes mean the home team is ahead, lower notes mean they're behind, and a soft drum marks every lead change.</p>
+</header>
+
+<main class="layout">
+  <nav aria-label="Choose a game">
+    <h2>Games</h2>
+    <ul id="list"></ul>
+  </nav>
+
+  <section aria-labelledby="gtitle">
+    <h2 id="gtitle"></h2>
+    <p id="gmeta"></p>
+    <div id="chart" role="img" aria-describedby="summary"></div>
+    <div class="controls">
+      <button id="play" type="button" aria-pressed="false">Listen</button>
+      <label>Length
+        <select id="dur">
+          <option value="12">12 seconds</option>
+          <option value="20" selected>20 seconds</option>
+          <option value="40">40 seconds</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="drone" checked> Background drone (the "zero" pitch)</label>
+    </div>
+    <p id="summary" aria-live="polite"></p>
+    <p class="key">
+      <span class="swatch" style="background:rgba(43,91,168,.35)"></span>Home team ahead &nbsp;
+      <span class="swatch" style="background:rgba(181,86,26,.35)"></span>Away team ahead.
+      Notes come from a five-note (pentatonic) scale, so any game sounds musical rather than random.
+    </p>
+    <details>
+      <summary>Show this game as a table</summary>
+      <div class="tablewrap" id="table"></div>
+    </details>
+  </section>
+</main>
+
+<footer>
+  Data: NCAA Women's Basketball play-by-play (Boiler Up, Hammer Data Challenge). Built with Plotly.js and Tone.js for CS 243.
+</footer>
+
+<script>
+const GAMES = window.GAMES || [];
+const C = { home: "#2B5BA8", away: "#B5561A", ink: "#17202A", rule: "#D9DEE5", muted: "#5B6673" };
+const SCALE = [0, 2, 4, 7, 9];          // major pentatonic (Mohanam): always consonant
+let current = 0, playing = false, raf = null, audio = null;
+
+const $ = (id) => document.getElementById(id);
+
+function totalMinutes(g) { return g.points[g.points.length - 1][0]; }
+
+function clockLabel(min) {
+  const s = min * 60;
+  let period, left;
+  if (s <= 2400) { period = Math.min(4, Math.floor(s / 600) + 1); left = period * 600 - s; }
+  else { const ot = Math.floor((s - 2400) / 300) + 1; period = 4 + ot; left = 2400 + ot * 300 - s; }
+  if (left < 0) left = 0;
+  const m = Math.floor(left / 60), sec = String(Math.round(left % 60)).padStart(2, "0");
+  const name = period <= 4 ? "Q" + period : (period === 5 ? "OT" : (period - 4) + "OT");
+  return `${name} ${m}:${sec}`;
+}
+
+function describe(g) {
+  const homeWon = g.final[0] > g.final[1];
+  const winner = homeWon ? g.home : g.away, loser = homeWon ? g.away : g.home;
+  const hi = Math.max(...g.points.map(p => p[1])), lo = Math.min(...g.points.map(p => p[1]));
+  // when did the winner face their biggest deficit?
+  const target = homeWon ? lo : hi;
+  const worst = g.points.find(p => p[1] === target);
+  const ot = g.periods > 4 ? (g.periods === 5 ? " in overtime" : ` in ${g.periods - 4} overtimes`) : "";
+  let s = `${winner} beat ${loser} ${Math.max(...g.final)}–${Math.min(...g.final)}${ot}.`;
+  if (g.comeback > 0) s += ` They trailed by ${g.comeback} at ${clockLabel(worst[0])}.`;
+  s += ` The lead changed hands ${g.leadChanges} time${g.leadChanges === 1 ? "" : "s"}.`;
+  s += ` Largest home lead: ${Math.max(hi, 0)}. Largest away lead: ${Math.max(-lo, 0)}.`;
+  return s;
+}
+
+function renderList() {
+  $("list").innerHTML = "";
+  GAMES.forEach((g, i) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-pressed", i === current ? "true" : "false");
+    const why = g.comeback >= 10 ? `Winner came back from ${g.comeback} down` : `${g.leadChanges} lead changes`;
+    b.innerHTML = `<span class="teams">${g.away} at ${g.home}</span><span class="why">${why}${g.date && g.date !== "sample" ? ", " + g.date : ""}</span>`;
+    b.addEventListener("click", () => select(i));
+    li.appendChild(b);
+    $("list").appendChild(li);
+  });
+}
+
+function renderChart(g) {
+  const x = g.points.map(p => p[0]), y = g.points.map(p => p[1]);
+  const total = totalMinutes(g);
+  const ext = Math.max(10, ...y.map(Math.abs)) + 3;
+  const hover = g.points.map(p => `${clockLabel(p[0])}<br>${p[1] > 0 ? g.home + " +" + p[1] : p[1] < 0 ? g.away + " +" + (-p[1]) : "Tied"}`);
+
+  const traces = [
+    { x, y: y.map(v => Math.max(v, 0)), mode: "lines", line: { shape: "hv", width: 0 }, fill: "tozeroy",
+      fillcolor: "rgba(43,91,168,.28)", hoverinfo: "skip", showlegend: false },
+    { x, y: y.map(v => Math.min(v, 0)), mode: "lines", line: { shape: "hv", width: 0 }, fill: "tozeroy",
+      fillcolor: "rgba(181,86,26,.28)", hoverinfo: "skip", showlegend: false },
+    { x, y, mode: "lines", line: { shape: "hv", color: C.ink, width: 2 }, text: hover,
+      hovertemplate: "%{text}<extra></extra>", showlegend: false },
+  ];
+
+  // quarter / overtime boundaries
+  const bounds = [10, 20, 30];
+  for (let t = 40; t < total - 0.01; t += 5) bounds.push(t);
+  const shapes = bounds.map(b => ({ type: "line", x0: b, x1: b, y0: -ext, y1: ext, line: { color: C.rule, width: 1, dash: "dot" } }));
+  shapes.push({ type: "line", x0: -100, x1: -100, y0: -ext, y1: ext, line: { color: C.away, width: 2 } }); // playhead
+
+  const layout = {
+    margin: { l: 64, r: 20, t: 36, b: 56 },
+    paper_bgcolor: "#fff", plot_bgcolor: "#fff",
+    font: { family: "Source Sans 3, system-ui, sans-serif", color: C.ink, size: 14 },
+    xaxis: { title: { text: "Game time (minutes elapsed)" }, range: [0, total], tickvals: [0, 10, 20, 30, 40, 45, 50].filter(t => t <= total + 0.01),
+             gridcolor: "#F0F2F5", zeroline: false, fixedrange: true },
+    yaxis: { title: { text: "Home team lead (points)" }, range: [-ext, ext], zeroline: true, zerolinecolor: C.ink,
+             zerolinewidth: 1, gridcolor: "#F0F2F5", fixedrange: true },
+    shapes,
+    annotations: [
+      { xref: "paper", yref: "paper", x: 0.01, y: 0.98, xanchor: "left", showarrow: false, text: `▲ ${g.home} ahead`, font: { color: C.home, size: 13 } },
+      { xref: "paper", yref: "paper", x: 0.01, y: 0.02, xanchor: "left", showarrow: false, text: `▼ ${g.away} ahead`, font: { color: C.away, size: 13 } },
+    ],
+    hoverlabel: { bgcolor: "#fff", bordercolor: C.ink, font: { color: C.ink } },
+  };
+  Plotly.react("chart", traces, layout, { responsive: true, displayModeBar: false });
+}
+
+function renderTable(g) {
+  const rows = g.points.slice(1).map(p => `<tr><td>${clockLabel(p[0])}</td><td>${p[0].toFixed(1)}</td><td>${p[1] > 0 ? "+" : ""}${p[1]}</td></tr>`).join("");
+  $("table").innerHTML = `<table><caption class="key">Every scoring change. Positive = ${g.home} ahead.</caption>
+    <thead><tr><th>Clock</th><th>Minute</th><th>Home lead</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function select(i) {
+  stop();
+  current = i;
+  const g = GAMES[i];
+  $("gtitle").textContent = `${g.away} at ${g.home}`;
+  $("gmeta").textContent = `Final: ${g.home} ${g.final[0]}, ${g.away} ${g.final[1]}${g.date && g.date !== "sample" ? ". " + g.date : ""}`;
+  $("summary").textContent = describe(g);
+  renderChart(g);
+  renderTable(g);
+  [...$("list").querySelectorAll("button")].forEach((b, j) => b.setAttribute("aria-pressed", j === i ? "true" : "false"));
+}
+
+// ---------- Sound ----------
+function freqFor(margin) {
+  const step = Math.round(Math.max(-25, Math.min(25, margin)) / 2.5);   // -10..10 scale steps
+  const octave = Math.floor(step / 5), idx = ((step % 5) + 5) % 5;
+  return Tone.Frequency(60 + 12 * octave + SCALE[idx], "midi").toFrequency();
+}
+
+async function play() {
+  await Tone.start();
+  stop();
+  const g = GAMES[current];
+  const dur = Number($("dur").value), total = totalMinutes(g);
+  const synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 0.15, sustain: 0.25, release: 0.25 } }).toDestination();
+  synth.volume.value = -10;
+  const drum = new Tone.MembraneSynth({ pitchDecay: 0.03, octaves: 3 }).toDestination();
+  drum.volume.value = -14;
+  let drone = null;
+  if ($("drone").checked) { drone = new Tone.Oscillator(Tone.Frequency(48, "midi"), "sine").toDestination(); drone.volume.value = -26; }
+  audio = { synth, drum, drone };
+
+  const T = Tone.Transport;
+  T.cancel(); T.position = 0;
+  let prevSign = 0;
+  g.points.slice(1).forEach(([t, m]) => {
+    const at = (t / total) * dur;
+    const sign = Math.sign(m);
+    const change = sign !== 0 && prevSign !== 0 && sign !== prevSign;
+    if (sign !== 0) prevSign = sign;
+    T.schedule(time => {
+      synth.triggerAttackRelease(freqFor(m), "16n", time);
+      if (change) drum.triggerAttackRelease("C2", "8n", time);
+    }, at);
+  });
+  T.schedule(time => Tone.Draw.schedule(() => { stop(); $("summary").textContent = describe(g); }, time), dur + 0.4);
+  if (drone) drone.start();
+  T.start();
+
+  playing = true;
+  $("play").textContent = "Stop";
+  $("play").setAttribute("aria-pressed", "true");
+  const k = document.getElementById("chart").layout.shapes.length - 1;
+  const tick = () => {
+    const x = Math.min(total, (T.seconds / dur) * total);
+    Plotly.relayout("chart", { [`shapes[${k}].x0`]: x, [`shapes[${k}].x1`]: x });
+    if (playing) raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+function stop() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  if (typeof Tone !== "undefined") { Tone.Transport.stop(); Tone.Transport.cancel(); }
+  if (audio) {
+    if (audio.drone) audio.drone.stop();
+    Object.values(audio).forEach(n => n && n.dispose());
+    audio = null;
+  }
+  if (playing) {
+    const el = document.getElementById("chart");
+    const k = el.layout.shapes.length - 1;
+    Plotly.relayout("chart", { [`shapes[${k}].x0`]: -100, [`shapes[${k}].x1`]: -100 });
+  }
+  playing = false;
+  $("play").textContent = "Listen";
+  $("play").setAttribute("aria-pressed", "false");
+}
+
+$("play").addEventListener("click", () => (playing ? stop() : play()));
+
+if (GAMES.length) { renderList(); select(0); }
+else { $("gtitle").textContent = "No games loaded"; $("summary").textContent = "Run prep.py to create data.js next to this file, then reload."; }
+</script>
+</body>
+</html>
